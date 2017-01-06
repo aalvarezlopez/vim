@@ -1,6 +1,12 @@
 set nocompatible
+set background=dark
+set t_Co=256
+syntax on
+set encoding=utf-8
+set nowrap
 
-"let $TMP='C:/temp'
+set hlsearch "highligh search patern
+set nrformats=octal,hex,alpha "autoincrement numbers
 
 autocmd Filetype python setlocal expandtab tabstop=4 shiftwidth=4
 autocmd Filetype c setlocal      expandtab tabstop=4 shiftwidth=4
@@ -8,38 +14,67 @@ autocmd Filetype c setlocal      expandtab tabstop=4 shiftwidth=4
 au BufRead,BufNewFile *.sco setfiletype python
 au BufRead,BufNewFile *.dox setfiletype Doxygen
 
-"Maximize on startup
-au GUIEnter * simalt ~x
+"******************************************************************************
+"IDENTATION
+"******************************************************************************
+
+set shiftwidth=4
+set tabstop=4
+set softtabstop=4
+set autoindent
+set copyindent
+set smartindent
+
 
 " General design
-colorscheme koehler
+colorscheme trusty
+"
+set list
+set listchars=eol:↲,tab:›—,trail:␣,extends:▶,precedes:◀
+set colorcolumn=80
 
-:set listchars=eol:$,tab:>-,trail:~,extends:>,precedes:<
-:set list
-:set colorcolumn=80
+set number " display line numbers
+set autoindent
+set copyindent
+set smartindent
+set shiftwidth=4
+set tabstop=4
+set softtabstop=4
+set fillchars+=stl:\ ,stlnc:\
 
-:set nu " display line numbers
-
-" Convert I cursor to block
-let &t_ti.="\e[1 q"
-let &t_SI.="\e[5 q"
-let &t_EI.="\e[1 q"
-let &t_te.="\e[0 q"
+"******************************************************************************
+"C CODE
+""*****************************************************************************
+set cinkeys=0{,0},0),o,O,!^F
+set cino=g0,Ls,N-s,(s,U1,m1,j1,J1,#1,l1
 
 " *****************************************************************************
 " FOLDING AND NERDTREE
-set fdm=syntax
+set foldmethod=marker
 let NERDTreeIgnore=['\.o$', '\~$']
 
-" *****************************************************************************
-" Set the color of the cursor
-highlight Cursor guifg=white guibg=black
-highlight iCursor guifg=white guibg=steelblue
-set guicursor=n-v-c:block-Cursor
-set guicursor+=i:ver100-iCursor
-set guicursor+=n-v-c:blinkon0
-set guicursor+=i:blinkwait10
 
+"******************************************************************************
+" AIRLINE
+" *****************************************************************************
+if !exists('g:airline_symbols')
+	let g:airline_symbols = {}
+endif
+ "unicode symbols
+ let g:airline_left_sep = '»'
+ let g:airline_left_sep = '▶'
+ let g:airline_right_sep = '«'
+ let g:airline_right_sep = '◀'
+ let g:airline_symbols.linenr = '␊'
+ let g:airline_symbols.linenr = '␤'
+ let g:airline_symbols.linenr = '¶'
+ let g:airline_symbols.branch = '⎇'
+ let g:airline_symbols.paste = 'ρ'
+ let g:airline_symbols.paste = 'Þ'
+ let g:airline_symbols.paste = '∥'
+ let g:airline_symbols.whitespace = 'Ξ'
+ let g:airline_symbols.readonly = 'Ξ'
+ let g:airline_symbols.crypt = 'Ξ'
 
 " *****************************************************************************
 " Set the cmd file that will be execute with the maps
@@ -53,10 +88,6 @@ map <C-b>l :e .\_makelog.log<RETURN>
 
 nnoremap <F10> <C-w><C-o>
 " *****************************************************************************
-" Configure airline 
-let g:airline_powerline_fonts = 1
-let g:airline_theme='base16color'
-
 "bufferline"
 let g:bufferline_modified = '*0'
 
@@ -71,7 +102,7 @@ let g:airline#extensions#tabline#show_buffers = 1
 let g:airline#extensions#tabline#buffer_nr_show = 1
 let g:airline#extensions#tagbar#enabled = 1
 
-:set laststatus=2
+set laststatus=2
 
 " *****************************************************************************
 " Remap key for quick navigation
@@ -82,7 +113,35 @@ map <F2> :bp<RETURN>
 map <F3> :bn<RETURN>
 map <F6> [m
 map <F7> ]m
+:noremap <F4> :set hlsearch! hlsearch?<CR>
+nmap ,w :exec FixWhitespaces()<CR>
+let g:ctrlp_map = '<c-p>'
+let g:ctrlp_cmd = 'CtrlP'
+" ****************************************************************************
+" TAGS
+" ****************************************************************************
+map <C-F12> :!ctags -R --sort=yes --c++-kinds=+pl --fields=+iaS --extra=+q .<CR>
 
+function! DelTagOfFile(file)
+  let fullpath = a:file
+  let cwd = getcwd()
+  let tagfilename = cwd . "/tags"
+  let f = substitute(fullpath, cwd . "/", "", "")
+  let f = escape(f, './')
+  let cmd = 'sed -i "/' . f . '/d" "' . tagfilename . '"'
+  let resp = system(cmd)
+endfunction
+
+function! UpdateTags()
+  let f = expand("%:p")
+  let cwd = getcwd()
+  let tagfilename = cwd . "/tags"
+  let cmd = 'ctags -a -f ' . tagfilename . ' --c++-kinds=+p --fields=+iaS --extra=+q ' . '"' . f . '"'
+  call DelTagOfFile(f)
+  let resp = system(cmd)
+endfunction
+
+autocmd BufWritePost *.cpp,*.h,*.c call UpdateTags()
 
 " *****************************************************************************
 function! CountDiffs()
@@ -156,7 +215,7 @@ endfunction
 
 " *****************************************************************************
 " ASTYLE options
-nnoremap <C-a> <C-w><C-o>:exec AstyleFile()<CR>
+nnoremap <C-a>s <C-w><C-o>:exec AstyleFile()<CR>
 function AstyleFile()
     :!astyle %  --style=otbs -s4 -p -k3 -W3 -xe -j -Oo -xC80
     :e
@@ -177,8 +236,19 @@ function AstylePreview()
     :windo diffthis
 endfunction
 
-" *****************************************************************************
+"" *****************************************************************************
+function! FixWhitespaces()
+  let l:search = @/
+  let l:l = line('.')
+  let l:c = col('.')
+
+  %s/\s\+$//e
+
+  let @/ = l:search
+  call cursor(l:l, l:c)
+endfunction
+
 " Add external source files
-source /home/aalvarezlopez/.vim/cscope_maps.vim
-source /home/aalvarezlopez/.vim/vundle.vim
+source ~/.vim/cscope_maps.vim
+source ~/.vim/vundle.vim
 

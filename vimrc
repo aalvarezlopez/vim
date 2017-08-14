@@ -14,6 +14,8 @@ autocmd Filetype c setlocal      expandtab tabstop=4 shiftwidth=4
 au BufRead,BufNewFile *.sco setfiletype python
 au BufRead,BufNewFile *.dox setfiletype Doxygen
 
+command! -nargs=* -complete=shellcmd R new | setlocal buftype=nofile bufhidden=hide noswapfile | r !<args>
+
 "******************************************************************************
 "IDENTATION
 "******************************************************************************
